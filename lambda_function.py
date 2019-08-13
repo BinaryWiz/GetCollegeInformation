@@ -2,25 +2,19 @@ from bs4 import BeautifulSoup
 import urllib.parse
 import urllib
 
+soup = None
 
 def get_name_of_college(address):
     # Name of the university
     try:
-        data = urllib.request.urlopen(address)
-        data = data.read()
-        soup = BeautifulSoup(data, "html.parser")
-        for name in soup.find_all('a', 'profile-entity-name__link'):
-            return name.text
-    except urllib.error.URLError as e:
+        return soup.find('h1', {"class":'postcard__title'}).text.strip().replace("This college has been claimed by the college or a college representative.", "")
+    except Exception as e:
         return "-"
 
 
 def get_sat_range(address):
     # SAT Range
     try:
-        data = urllib.request.urlopen(address)
-        data = data.read()
-        soup = BeautifulSoup(data, "html.parser")
         for div in soup.find_all('div', 'scalar--three'):
             if 'SAT ' in div.text:
                 return "SAT Range: " + div.text[9:]
@@ -31,9 +25,6 @@ def get_sat_range(address):
 def get_niche_grade(address):
     # The niche grade
     try:
-        data = urllib.request.urlopen(address)
-        data = data.read()
-        soup = BeautifulSoup(data, "html.parser")
         for div in soup.find_all('div', 'overall-grade__niche-grade'):
             return div.text
     except urllib.error.URLError as e:
@@ -43,9 +34,6 @@ def get_niche_grade(address):
 def get_acceptance_rate(address):
     # The acceptance rate
     try:
-        data = urllib.request.urlopen(address)
-        data = data.read()
-        soup = BeautifulSoup(data, "html.parser")
         for item in soup.find(id='admissions'):
             for div in item.find_all('div', 'profile__bucket--1'):
                 for x in div.find_all('div', 'scalar__value'):
@@ -57,10 +45,7 @@ def get_acceptance_rate(address):
 def get_location(address):
     # The location of the college
     try:
-        data = urllib.request.urlopen(address)
-        data = data.read()
-        soup = BeautifulSoup(data, "html.parser")
-        for span in soup.find_all('span', 'bare-value'):
+        for span in soup.find_all('li', {"class":'postcard__attr postcard-fact'}):
             if ', ' in span.text:
                 return "Location: " + span.text
     except urllib.error.URLError as e:
@@ -70,9 +55,6 @@ def get_location(address):
 def get_cost(address):
     # The net cost
     try:
-        data = urllib.request.urlopen(address)
-        data = data.read()
-        soup = BeautifulSoup(data, "html.parser")
         for div in soup.find(id='cost'):
             for item in div.find_all('div', 'profile__bucket--1'):
                 for item2 in item.find_all('div', 'scalar__value'):
@@ -85,9 +67,6 @@ def get_cost(address):
 def get_act_range(address):
     # Gets the ACT Range of the college selected
     try:
-        data = urllib.request.urlopen(address)
-        data = data.read()
-        soup = BeautifulSoup(data, "html.parser")
         for div in soup("div", "scalar--three"):
             if "ACT " in div.text:
                 return "ACT Range: " + div.text[9:]
@@ -101,6 +80,11 @@ def lambda_handler(event, context):
     college = college.lower().replace(" ", "-")
     college = college.strip('.')
     address = "https://www.niche.com/colleges/" + college
+    data = urllib.request.urlopen(address)
+    data = data.read()
+
+    global soup
+    soup = BeautifulSoup(data, "html.parser")
     return {
         "message": {
             "Name": get_name_of_college(address),
@@ -112,5 +96,3 @@ def lambda_handler(event, context):
             "Act_Range": get_act_range(address)
         }
     }
-
-print(lambda_handler({"search": "Stanford University"}, None))
